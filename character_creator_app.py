@@ -1,20 +1,22 @@
-   import streamlit as st
+import streamlit as st
 import os
 from io import BytesIO
 from PIL import Image
-import requests # Nanobanana連携のために追加
+# Gemini APIとの連携を模擬するため、requestsは不要
+# from google import genai # 実際にはgenaiライブラリを使いますが、デモ用にコメントアウト
 
-# --- !!! ⚠️ 重要: Nanobanana APIの設定 !!! ---
-# Streamlit CloudのSecretsからAPIキーを取得
-NANOBANANA_API_KEY = st.secrets.get("NANOBANANA_API_KEY")
+# --- !!! ⚠️ 重要: Gemini APIの設定 (ダミー) !!! ---
+# 実際のAPIキーはStreamlit CloudのSecretsに設定済みを想定
+# 以前のコードのように、クライアントの初期化は省略し、デモ表示を継続します。
+# client = genai.Client() # 実際はここでクライアント初期化
 
 # --- アプリの基本設定 ---
 st.set_page_config(
     page_title="キャラクタークリエイター",
     layout="wide"
 )
-st.title("🤖 キャラクタークリエイター (Nanobanana API連携)")
-st.caption("※ このアプリはNanobananaの画像生成APIを利用します。キーがない場合は動作しません。")
+st.title("🤖 キャラクタークリエイター (Gemini API連携デモ)")
+st.caption("※ 現在はインターフェースのデモです。実際の画像生成API呼び出し機能は、APIキーと対応ライブラリ設定後に有効になります。")
 st.markdown("---")
 
 # --- 共通機能 ---
@@ -41,60 +43,28 @@ with st.sidebar.expander("詳細設定"):
 st.markdown(f"**選択モード:** **{mode}**")
 st.markdown("---")
 
-
-# Nanobanana APIを呼び出して画像を生成する関数
+# ⭐ ダミーの画像生成関数 (Gemini API風のデモ用に戻す)
 def generate_image(prompt, count, ratio, collection_name):
-    """Nanobanana APIを呼び出して画像を生成する関数"""
-    if not NANOBANANA_API_KEY:
-        st.error("⚠️ Nanobanana APIキーが設定されていません。Secretsを確認してください。")
-        st.caption("※ 現在、Nanobanana APIキーの取得が困難なため、このアプリは正しく動作しません。")
-        return
+    """ダミーの画像を生成したと仮定して表示する関数"""
+    st.subheader("💡 生成結果 (デモ)")
+    st.write(f"生成指示 (プロンプトの骨子): `{prompt.split('---')[0].strip()}`")
+    st.write(f"生成枚数: {count}枚 / アスペクト比: {ratio}")
     
-    # API呼び出しの準備
-    # ※ APIのエンドポイントやパラメータ名は、Nanobananaの最新仕様に合わせて調整が必要です。
-    API_URL = "https://nanobanana.jp/api/v1/generate" 
-    headers = {
-        "Authorization": f"Bearer {NANOBANANA_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    payload = {
-        "prompt": prompt,
-        "n_images": count,
-        "aspect_ratio": ratio, 
-        "model": "stable-diffusion-xl-beta",
-    }
-
-    st.info("画像を生成中です。数分かかる場合があります...")
-    
-    try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=300) 
-        response.raise_for_status()
-        
-        results = response.json()
-        
-        # --- 画像の表示とダウンロード（ダミー表示ロジック） ---
-        st.subheader("💡 生成結果 (ダミー表示)")
-        st.caption("※ Nanobanana APIからのレスポンス形式が不明なため、キーがあっても動作しない可能性があります。")
-        st.write(f"生成指示: `{prompt.split('---')[0].strip()}`")
-        st.write(f"生成枚数: {count}枚 / アスペクト比: {ratio}")
-
-        # NanobananaのAPIレスポンス形式が不明なため、ここではダミー画像を表示します
-        cols = st.columns(min(count, 4))
-        for i in range(count):
-            with cols[i % 4]:
-                st.image("https://placehold.jp/3d4070/ffffff/350x200.png?text=Nanobanana+Result+%23" + str(i+1), 
-                         caption=f"結果 {i+1}")
-                st.download_button(
-                    label=f"⬇️ 保存 {i+1}",
-                    data=b"", 
-                    file_name=f"{collection_name}_result_{i+1}.png",
-                    mime="image/png"
-                )
-        
-    except requests.exceptions.RequestException as e:
-        st.error(f"❌ API呼び出しエラー: {e}")
-        st.error("APIキー、URL、または利用規約を確認してください。")
+    # ダミー画像の表示
+    cols = st.columns(min(count, 4))
+    for i in range(count):
+        with cols[i % 4]:
+            st.image("https://placehold.jp/2ecc71/ffffff/350x200.png?text=Gemini+Demo+%23" + str(i+1), 
+                     caption=f"結果 {i+1}")
+            st.download_button(
+                label=f"⬇️ 保存 {i+1}",
+                data=b"", 
+                file_name=f"{collection_name}_result_{i+1}.png",
+                mime="image/png"
+            )
+            
+    if st.button("🖼️ すべて保存 (ZIPダウンロード)", key="save_all"):
+        st.success("（ZIPファイルを作成し、ダウンロードを開始します）")
 
 
 # ========================================
@@ -141,7 +111,7 @@ if mode == "三面図モード":
     if st.button("✨ 三面図を生成する", type="primary"):
         if required_ref:
             prompt = f"高品質なキャラクターの三面図（正面、側面、背面）をターンアラウンドシートとして生成してください。アスペクト比は16:9。\n--- [スタイル・追加指示]: {additional_instructions}\n"
-            # API呼び出し
+            # ⭐ API呼び出し
             generate_image(prompt, generation_count, "16:9", collection_name)
         else:
             st.error("❌ 生成を開始できません。参考画像を1〜3枚アップロードしてください。")
@@ -170,8 +140,8 @@ elif mode == "一枚絵モード":
             "9:16 (縦長スマホ)": "9:16", 
             "4:3 (標準横)": "4:3", 
             "3:4 (標準縦)": "3:4", 
-            "21:9 (映画ワイド)": "21:9",    # ⭐ 追加
-            "5:4 (ポートレート)": "5:4"    # ⭐ 追加
+            "21:9 (映画ワイド)": "21:9",    # ⭐ 拡張アスペクト比
+            "5:4 (ポートレート)": "5:4"    # ⭐ 拡張アスペクト比
         }
         aspect_ratio_choice = st.selectbox(
             "アスペクト比",
@@ -225,11 +195,12 @@ elif mode == "一枚絵モード":
                 if char2_pose or char2_pose_text:
                     prompt += f"[キャラクター2ポーズ]: {char2_pose_text or '画像参照'}\n"
             
-            # API呼び出し
+            # ⭐ API呼び出し
             generate_image(prompt, generation_count, selected_ratio, collection_name)
             
         elif not overall_prompt:
             st.error("❌ 全体の指示を入力してください。")
         else:
             st.error("❌ 少なくとも一方のキャラクターのポーズ指定を行ってください。")
+
  
