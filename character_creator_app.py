@@ -1,8 +1,8 @@
-import streamlit as st
+   import streamlit as st
 import os
 from io import BytesIO
 from PIL import Image
-import requests # ⭐ Nanobanana連携のために追加
+import requests # Nanobanana連携のために追加
 
 # --- !!! ⚠️ 重要: Nanobanana APIの設定 !!! ---
 # Streamlit CloudのSecretsからAPIキーを取得
@@ -14,7 +14,7 @@ st.set_page_config(
     layout="wide"
 )
 st.title("🤖 キャラクタークリエイター (Nanobanana API連携)")
-st.caption("※ このアプリはNanobananaの画像生成APIを利用しています。")
+st.caption("※ このアプリはNanobananaの画像生成APIを利用します。キーがない場合は動作しません。")
 st.markdown("---")
 
 # --- 共通機能 ---
@@ -42,15 +42,16 @@ st.markdown(f"**選択モード:** **{mode}**")
 st.markdown("---")
 
 
-# ⭐ Nanobanana APIを呼び出して画像を生成する関数に置き換え
+# Nanobanana APIを呼び出して画像を生成する関数
 def generate_image(prompt, count, ratio, collection_name):
     """Nanobanana APIを呼び出して画像を生成する関数"""
     if not NANOBANANA_API_KEY:
         st.error("⚠️ Nanobanana APIキーが設定されていません。Secretsを確認してください。")
+        st.caption("※ 現在、Nanobanana APIキーの取得が困難なため、このアプリは正しく動作しません。")
         return
     
     # API呼び出しの準備
-    # ※ APIのエンドポイントやパラメータ名は、Nanobananaの最新仕様に合わせて調整してください。
+    # ※ APIのエンドポイントやパラメータ名は、Nanobananaの最新仕様に合わせて調整が必要です。
     API_URL = "https://nanobanana.jp/api/v1/generate" 
     headers = {
         "Authorization": f"Bearer {NANOBANANA_API_KEY}",
@@ -61,8 +62,7 @@ def generate_image(prompt, count, ratio, collection_name):
         "prompt": prompt,
         "n_images": count,
         "aspect_ratio": ratio, 
-        "model": "stable-diffusion-xl-beta", # 利用するモデル名を指定
-        # "negative_prompt": "..." # 必要に応じてネガティブプロンプトを追加可能
+        "model": "stable-diffusion-xl-beta",
     }
 
     st.info("画像を生成中です。数分かかる場合があります...")
@@ -75,11 +75,11 @@ def generate_image(prompt, count, ratio, collection_name):
         
         # --- 画像の表示とダウンロード（ダミー表示ロジック） ---
         st.subheader("💡 生成結果 (ダミー表示)")
-        st.caption("※ Nanobanana APIからのレスポンスを解析し、画像URLを取得・表示する必要があります。")
+        st.caption("※ Nanobanana APIからのレスポンス形式が不明なため、キーがあっても動作しない可能性があります。")
         st.write(f"生成指示: `{prompt.split('---')[0].strip()}`")
         st.write(f"生成枚数: {count}枚 / アスペクト比: {ratio}")
 
-        # ⭐ NanobananaのAPIレスポンス形式が不明なため、ここではダミー画像を表示します
+        # NanobananaのAPIレスポンス形式が不明なため、ここではダミー画像を表示します
         cols = st.columns(min(count, 4))
         for i in range(count):
             with cols[i % 4]:
@@ -141,7 +141,7 @@ if mode == "三面図モード":
     if st.button("✨ 三面図を生成する", type="primary"):
         if required_ref:
             prompt = f"高品質なキャラクターの三面図（正面、側面、背面）をターンアラウンドシートとして生成してください。アスペクト比は16:9。\n--- [スタイル・追加指示]: {additional_instructions}\n"
-            # ⭐ API呼び出し
+            # API呼び出し
             generate_image(prompt, generation_count, "16:9", collection_name)
         else:
             st.error("❌ 生成を開始できません。参考画像を1〜3枚アップロードしてください。")
@@ -225,10 +225,11 @@ elif mode == "一枚絵モード":
                 if char2_pose or char2_pose_text:
                     prompt += f"[キャラクター2ポーズ]: {char2_pose_text or '画像参照'}\n"
             
-            # ⭐ API呼び出し
+            # API呼び出し
             generate_image(prompt, generation_count, selected_ratio, collection_name)
             
         elif not overall_prompt:
             st.error("❌ 全体の指示を入力してください。")
         else:
             st.error("❌ 少なくとも一方のキャラクターのポーズ指定を行ってください。")
+ 
