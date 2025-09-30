@@ -5,17 +5,21 @@ from PIL import Image
 # 実際にはここで google-genai ライブラリをインポートしますが、今回はデモのため省略
 # from google import genai 
 
-# --- !!! ⚠️ 重要: Gemini APIの設定 (ダミー) !!! ---
+# --- !!! ⚠️ 重要: Gemini APIの設定 !!! ---
 # Streamlit CloudのSecretsに設定済みのAPIキーを取得
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
+
+# APIクライアントの初期化 (デモのため省略。実際はここで genai.Client() が入る)
+if not GEMINI_API_KEY:
+    st.error("⚠️ GEMINI_API_KEYが設定されていません。Secretsを確認してください。プロンプト自動生成機能はデモ表示となります。")
 
 # --- アプリの基本設定 ---
 st.set_page_config(
     page_title="キャラクタークリエイター",
     layout="wide"
 )
-st.title("🤖 キャラクタークリエイター (Gemini API連携デモ)")
-st.caption("※ 現在はインターフェースのデモです。実際の画像生成API呼び出し機能は、APIキーと対応ライブラリ設定後に有効になります。")
+st.title("🤖 キャラクタークリエイター (Gemini AIプロンプト調整機能付きデモ)")
+st.caption("※ 現在はインターフェースとAIロジックのデモです。")
 st.markdown("---")
 
 # --- 共通機能 ---
@@ -25,7 +29,7 @@ mode = st.sidebar.radio(
     ["三面図モード", "一枚絵モード"]
 )
 
-# ⭐ 1. 出力枚数スライダーをサイドバーの詳細設定内に配置
+# 「コレクション名」と「生成枚数スライダー」をサイドバーの expender 内に移動
 with st.sidebar.expander("詳細設定"):
     collection_name = st.text_input(
         "コレクション名 (任意)",
@@ -43,11 +47,28 @@ with st.sidebar.expander("詳細設定"):
 st.markdown(f"**選択モード:** **{mode}**")
 st.markdown("---")
 
-# ダミーの画像生成関数 (Gemini API風のデモ用に戻す)
+# ⭐ プロンプト生成関数の追加
+def generate_detailed_prompt(user_prompt_text):
+    """ユーザーのシンプルな指示を、画像生成用の詳細なプロンプトに変換する（デモ）"""
+    # ⚠️ 実際にはここにAPI呼び出しとプロンプト変換ロジックが入ります
+    # 実際は client.models.generate_content(model='gemini-2.5-flash', ...) を呼び出す
+    
+    # デモ用の結果
+    detailed_prompt = f"""
+    --- 詳細プロンプト（Gemini AIが調整）---
+    A stunning, highly detailed fantasy concept art of a character. 
+    Subject: {user_prompt_text}
+    Style: cinematic, volumetric lighting, unreal engine render, 8k.
+    --negative_prompt
+    low quality, blurry, mutated, duplicated, text, watermark.
+    """
+    return detailed_prompt.strip()
+
+# ダミーの画像生成関数
 def generate_image(prompt, count, ratio, collection_name):
     """ダミーの画像を生成したと仮定して表示する関数"""
-    st.subheader("💡 生成結果 (デモ)")
-    st.write(f"生成指示 (プロンプトの骨子): `{prompt.split('---')[0].strip()}`")
+    st.subheader("💡 画像生成結果 (デモ)")
+    st.write(f"最終プロンプト: `{prompt.split('---')[0].strip()}`")
     st.write(f"生成枚数: {count}枚 / アスペクト比: {ratio}")
     
     # ダミー画像の表示
@@ -108,11 +129,21 @@ if mode == "三面図モード":
         st.markdown(f"**出力アスペクト比:** `16:9` (固定)")
 
     st.markdown("---")
-    if st.button("✨ 三面図を生成する", type="primary"):
+    
+    # ⭐ ボタン押下時の処理をプロンプト生成関数を呼び出すように変更
+    if st.button("✨ 詳細プロンプトを生成し、画像生成へ", type="primary"):
         if required_ref:
-            prompt = f"高品質なキャラクターの三面図（正面、側面、背面）をターンアラウンドシートとして生成してください。アスペクト比は16:9。\n--- [スタイル・追加指示]: {additional_instructions}\n"
-            # API呼び出し
-            generate_image(prompt, generation_count, "16:9", collection_name)
+            # ユーザー入力を結合
+            user_input = f"キャラクターの三面図、アスペクト比16:9。スタイル・追加指示: {additional_instructions}"
+
+            with st.spinner('Gemini AIが詳細なプロンプトを調整中...'):
+                detailed_prompt = generate_detailed_prompt(user_input)
+                
+            st.success("✅ 詳細プロンプトが生成されました！")
+            st.code(detailed_prompt, language="markdown")
+            
+            # 画像生成API呼び出し
+            generate_image(detailed_prompt, generation_count, "16:9", collection_name)
         else:
             st.error("❌ 生成を開始できません。参考画像を1〜3枚アップロードしてください。")
 
@@ -134,7 +165,7 @@ elif mode == "一枚絵モード":
             height=100
         )
     with col_ratio:
-        # ⭐ 2. 拡張アスペクト比の選択肢の追加
+        # 拡張アスペクト比の選択肢
         aspect_ratio_map = {
             "1:1 (正方形)": "1:1", 
             "16:9 (横長ワイド)": "16:9", 
@@ -188,22 +219,23 @@ elif mode == "一枚絵モード":
     
     st.markdown("---")
     
-    if st.button("🎨 一枚絵を生成する", type="primary"):
+    # ⭐ ボタン押下時の処理をプロンプト生成関数を呼び出すように変更
+    if st.button("🎨 詳細プロンプトを生成し、画像生成へ", type="primary"):
         if overall_prompt and pose_specified:
-            prompt = f"高品質なコンセプトアートイラストを生成してください。\n[シーン・構図]: {overall_prompt}\n[アスペクト比]: {selected_ratio}\n"
-            if pose_specified:
-                prompt += f"[キャラクター1ポーズ]: {char1_pose_text or '画像参照'}\n"
-                if char2_pose or char2_pose_text:
-                    prompt += f"[キャラクター2ポーズ]: {char2_pose_text or '画像参照'}\n"
+            # ユーザー入力を結合
+            user_input = f"[シーン・構図]: {overall_prompt} | [キャラ1ポーズ]: {char1_pose_text} | [キャラ2ポーズ]: {char2_pose_text}"
             
-            # API呼び出し
-            generate_image(prompt, generation_count, selected_ratio, collection_name)
+            # 詳細プロンプトの生成
+            with st.spinner('Gemini AIが詳細なプロンプトを調整中...'):
+                detailed_prompt = generate_detailed_prompt(user_input)
+                
+            st.success("✅ 詳細プロンプトが生成されました！")
+            st.code(detailed_prompt, language="markdown")
+            
+            # 画像生成API呼び出し
+            generate_image(detailed_prompt, generation_count, selected_ratio, collection_name)
             
         elif not overall_prompt:
             st.error("❌ 全体の指示を入力してください。")
         else:
             st.error("❌ 少なくとも一方のキャラクターのポーズ指定を行ってください。")
-
-
-
- 
