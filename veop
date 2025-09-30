@@ -1,0 +1,9 @@
+[browser]
+gatherUsageStats = false
+
+[server]
+runOnSave = true
+
+[global]
+# ここでアプリを強制的に公開状態（Public）にします
+public = true
