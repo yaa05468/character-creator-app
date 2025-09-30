@@ -2,13 +2,12 @@ import streamlit as st
 import os
 from io import BytesIO
 from PIL import Image
-# Gemini APIとの連携を模擬するため、requestsは不要
-# from google import genai # 実際にはgenaiライブラリを使いますが、デモ用にコメントアウト
+# 実際にはここで google-genai ライブラリをインポートしますが、今回はデモのため省略
+# from google import genai 
 
 # --- !!! ⚠️ 重要: Gemini APIの設定 (ダミー) !!! ---
-# 実際のAPIキーはStreamlit CloudのSecretsに設定済みを想定
-# 以前のコードのように、クライアントの初期化は省略し、デモ表示を継続します。
-# client = genai.Client() # 実際はここでクライアント初期化
+# Streamlit CloudのSecretsに設定済みのAPIキーを取得
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
 
 # --- アプリの基本設定 ---
 st.set_page_config(
@@ -26,6 +25,7 @@ mode = st.sidebar.radio(
     ["三面図モード", "一枚絵モード"]
 )
 
+# ⭐ 1. 出力枚数スライダーの追加
 with st.sidebar.expander("詳細設定"):
     collection_name = st.text_input(
         "コレクション名 (任意)",
@@ -43,7 +43,7 @@ with st.sidebar.expander("詳細設定"):
 st.markdown(f"**選択モード:** **{mode}**")
 st.markdown("---")
 
-# ⭐ ダミーの画像生成関数 (Gemini API風のデモ用に戻す)
+# ダミーの画像生成関数 (Gemini API風のデモ用に戻す)
 def generate_image(prompt, count, ratio, collection_name):
     """ダミーの画像を生成したと仮定して表示する関数"""
     st.subheader("💡 生成結果 (デモ)")
@@ -111,7 +111,7 @@ if mode == "三面図モード":
     if st.button("✨ 三面図を生成する", type="primary"):
         if required_ref:
             prompt = f"高品質なキャラクターの三面図（正面、側面、背面）をターンアラウンドシートとして生成してください。アスペクト比は16:9。\n--- [スタイル・追加指示]: {additional_instructions}\n"
-            # ⭐ API呼び出し
+            # API呼び出し
             generate_image(prompt, generation_count, "16:9", collection_name)
         else:
             st.error("❌ 生成を開始できません。参考画像を1〜3枚アップロードしてください。")
@@ -134,14 +134,15 @@ elif mode == "一枚絵モード":
             height=100
         )
     with col_ratio:
+        # ⭐ 2. 拡張アスペクト比の選択肢の追加
         aspect_ratio_map = {
             "1:1 (正方形)": "1:1", 
             "16:9 (横長ワイド)": "16:9", 
             "9:16 (縦長スマホ)": "9:16", 
             "4:3 (標準横)": "4:3", 
             "3:4 (標準縦)": "3:4", 
-            "21:9 (映画ワイド)": "21:9",    # ⭐ 拡張アスペクト比
-            "5:4 (ポートレート)": "5:4"    # ⭐ 拡張アスペクト比
+            "21:9 (映画ワイド)": "21:9",    
+            "5:4 (ポートレート)": "5:4"    
         }
         aspect_ratio_choice = st.selectbox(
             "アスペクト比",
@@ -195,12 +196,13 @@ elif mode == "一枚絵モード":
                 if char2_pose or char2_pose_text:
                     prompt += f"[キャラクター2ポーズ]: {char2_pose_text or '画像参照'}\n"
             
-            # ⭐ API呼び出し
+            # API呼び出し
             generate_image(prompt, generation_count, selected_ratio, collection_name)
             
         elif not overall_prompt:
             st.error("❌ 全体の指示を入力してください。")
         else:
             st.error("❌ 少なくとも一方のキャラクターのポーズ指定を行ってください。")
+
 
  
