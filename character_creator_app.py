@@ -25,7 +25,7 @@ mode = st.sidebar.radio(
     ["三面図モード", "一枚絵モード"]
 )
 
-# ⭐ 1. 出力枚数スライダーの追加
+# ⭐ 1. 出力枚数スライダーをサイドバーの詳細設定内に配置
 with st.sidebar.expander("詳細設定"):
     collection_name = st.text_input(
         "コレクション名 (任意)",
@@ -203,6 +203,7 @@ elif mode == "一枚絵モード":
             st.error("❌ 全体の指示を入力してください。")
         else:
             st.error("❌ 少なくとも一方のキャラクターのポーズ指定を行ってください。")
+
 
 
  
